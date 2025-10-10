@@ -20,18 +20,6 @@ p_columns = ["p_smooth", "p_features", "p_artifact", "p_edgeon_yes", "p_edgeon_n
 df[p_columns] = df[p_columns].astype(float)
 df["total_votes"] = df["total_votes"].astype(int)
 
-imageIds = pd.read_csv("gz2_filename_mapping.csv")[["objectID", "imgID"]]
-merged = df.merge(imageIds, on="objectID", how="left")
-
-image_dir = "images"
-valid_ids = set(
-    os.path.splitext(f)[0]
-    for f in os.listdir(image_dir)
-    if os.path.isfile(os.path.join(image_dir, f))
-)
-
-merged["imgID"] = merged["imgID"].astype(str)
-merged["imgID"] = merged["imgID"].apply(lambda x: x if x in valid_ids else "-1")
 
 group1 = ["p_smooth", "p_features", "p_artifact"]
 group2 = ["p_edgeon_yes", "p_edgeon_no"]
@@ -39,27 +27,20 @@ group3 = ["p_spiral", "p_no_spiral"]
 
 TOLERANCE = 0.8
 
-filtered = merged[
-    (merged[group1] > TOLERANCE).any(axis=1) &
-    (merged[group2] > TOLERANCE).any(axis=1) &
-    (merged[group3] > TOLERANCE).any(axis=1)
+filtered = df[
+    (df[group1] > TOLERANCE).any(axis=1) &
+    (df[group2] > TOLERANCE).any(axis=1) &
+    (df[group3] > TOLERANCE).any(axis=1)
 ]
+categorical = filtered.copy()
+categorical["morphology"] = filtered[group1].idxmax(axis=1).str.replace("p_", "")
+categorical["edgeon"] = filtered[group2].idxmax(axis=1).str.replace("p_edgeon_", "")
+categorical["spiral"] = filtered[group3].idxmax(axis=1).str.replace("p_", "").str.replace("no_spiral", "no")
 
-filtered["morphology"] = filtered[group1].idxmax(axis=1).str.replace("p_", "")
-filtered["edgeon"] = filtered[group2].idxmax(axis=1).str.replace("p_edgeon_", "")
-filtered["spiral"] = filtered[group3].idxmax(axis=1).str.replace("p_", "").str.replace("no_spiral", "no")
-filtered_combined = filtered.drop(columns=p_columns)
-filtered_combined.to_csv("datasets/galaxies_combined.csv", index=False)
+categorical = categorical.drop(columns=p_columns)
+categorical.to_csv("datasets/galaxies_categorical.csv", index=False)
 
-filtered_noImg = filtered[filtered["imgID"] == "-1"]
-filtered_noImg = filtered_noImg.drop(columns=p_columns)
-filtered_noImg.to_csv("datasets/galaxies_noImg.csv", index=False)
+filtered.to_csv("datasets/galaxies_probabilities.csv", index=False)
 
-filtered_with_img = filtered[filtered["imgID"] != "-1"].sort_values(by="imgID")
-filtered_with_img.to_csv("datasets/galaxies_probabilities.csv", index=False)
-
-
-categorical = filtered_with_img.drop(columns=p_columns)
-categorical.to_csv("datasets/galaxies.csv", index=False)
 
 
