@@ -5,14 +5,14 @@ import pandas as pd
 
 MAX_FAILS = 10
 IMG_PIXELS = "256,256"
-OUTPUT_DIR = "fits"
+OUTPUT_DIR = "./fits"
 CHANNELS = ["SDSSu", "SDSSg", "SDSSr", "SDSSi", "SDSSz"]
 
 if not os.path.exists(OUTPUT_DIR):
     os.makedirs(OUTPUT_DIR)
     print(f"Created directory: {OUTPUT_DIR}")
 
-data = pd.read_csv("datasets/galaxies_categorical.csv")
+data = pd.read_csv("./datasets/galaxies_categorical.csv")
 coordinates = data[["objectID", "ra", "dec"]]
 
 BASE_URL = "https://skyview.gsfc.nasa.gov/current/cgi/runquery.pl"
