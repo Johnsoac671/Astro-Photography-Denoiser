@@ -5,9 +5,10 @@ import pandas as pd
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Lock
 
-MAX_FAILS = 10
-IMG_PIXELS = "256,256"
-OUTPUT_DIR = "./fits"
+MAX_FAILS = 20
+IMAGE_COUNT = 3000
+IMG_PIXELS = "64,64"
+OUTPUT_DIR = "./fitssmall"
 CHANNELS = ["SDSSu", "SDSSg", "SDSSr", "SDSSi", "SDSSz"]
 MAX_WORKERS = 6
 RATE_LIMIT_DELAY = 0.3
@@ -29,11 +30,11 @@ time_lock = Lock()
 def download_fits(i, id, ra, dec, channel):
     global last_request_time
     
-    cutout_dir = os.path.join(OUTPUT_DIR, f"{id}_cutout_{i+1:02d}")
+    cutout_dir = os.path.join(OUTPUT_DIR, f"{id}")
     if not os.path.exists(cutout_dir):
         os.makedirs(cutout_dir, exist_ok=True)
     
-    filename = os.path.join(cutout_dir, f"{channel}_{ra:.4f}_{dec:.4f}.fits")
+    filename = os.path.join(cutout_dir, f"{channel}_{id}.fits")
     if os.path.exists(filename):
         print(f"({i+1}/{len(coordinates)}) {channel} already exists for {id}, skipping")
         return True
@@ -66,7 +67,7 @@ def download_fits(i, id, ra, dec, channel):
 
 tasks = []
 for i, id, ra, dec in coordinates.itertuples():
-    if i > 10000:
+    if i > IMAGE_COUNT:
         break
     for channel in CHANNELS:
         tasks.append((i, id, ra, dec, channel))

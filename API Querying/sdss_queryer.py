@@ -22,12 +22,12 @@ for i, id, ra, dec in coordinates.itertuples():
     if i > 100:
         break
 
-    cutout_dir = os.path.join(OUTPUT_DIR, f"{id}_cutout_{i+1:02d}")
+    cutout_dir = os.path.join(OUTPUT_DIR, f"{id}")
     if not os.path.exists(cutout_dir):
         os.makedirs(cutout_dir)
 
     for channel in CHANNELS:
-        filename = os.path.join(cutout_dir, f"{channel}_{ra:.4f}_{dec:.4f}.fits")
+        filename = os.path.join(cutout_dir, f"{channel}_{id}.fits")
         if os.path.exists(filename):
             print(f"({i+1}/{len(coordinates)}) {channel} already exists for {id}, skipping")
             continue
