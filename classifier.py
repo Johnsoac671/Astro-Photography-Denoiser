@@ -42,14 +42,14 @@ def get_fits(galaxy_id):
 
 def get_labelled_data(ids):
     df = pandas.read_csv("datasets\\galaxies_categorical.csv")
-    labels = df[["objectID", "morphology"]]
+    labels = df[["objectID", "morphology", "edgeon", "spiral"]]
     
     return labels[labels["objectID"].astype(str).isin(ids)]
 
 def build_dataset(labelDf):
     ids = labelDf["objectID"].tolist()
     fits_list = []
-    label_list = []
+    valid_ids = []
 
     index = 0
     fails = 0
@@ -68,19 +68,15 @@ def build_dataset(labelDf):
                 continue
 
             fits_list.append(data)
-            label_list.append(labelDf.loc[labelDf["objectID"] == galaxy_id, "morphology"].values[0])
-
+            valid_ids.append(galaxy_id)
             index += 1
-            
-            if index == 1000:
-                break
             
             if index % 100 == 0:
                 print(f"Done with: {index}")
 
     data = numpy.stack(fits_list)
     data = data.reshape(data.shape[0], -1) # flatten data
-    labels = numpy.array(label_list)
+    labels = labels = labelDf[labelDf["objectID"].isin(valid_ids)][["morphology"]].values
 
     return data, labels
 
