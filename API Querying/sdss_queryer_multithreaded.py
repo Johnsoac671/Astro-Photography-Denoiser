@@ -6,12 +6,15 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Lock
 
 MAX_FAILS = 20
-IMAGE_COUNT = 3000
+IMAGE_COUNT = 2500
 IMG_PIXELS = "64,64"
 OUTPUT_DIR = "./fitssmall"
-CHANNELS = ["SDSSu", "SDSSg", "SDSSr", "SDSSi", "SDSSz"]
+# CHANNELS = ["SDSSg", "SDSSr", "SDSSi"]
+
+CHANNELS = ["DSS1 Red"]
+
 MAX_WORKERS = 6
-RATE_LIMIT_DELAY = 0.3
+RATE_LIMIT_DELAY = 0.5
 
 if not os.path.exists(OUTPUT_DIR):
     os.makedirs(OUTPUT_DIR)
@@ -67,7 +70,7 @@ def download_fits(i, id, ra, dec, channel):
 
 tasks = []
 for i, id, ra, dec in coordinates.itertuples():
-    if i > IMAGE_COUNT:
+    if i >= IMAGE_COUNT:
         break
     for channel in CHANNELS:
         tasks.append((i, id, ra, dec, channel))

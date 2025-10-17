@@ -5,8 +5,12 @@ import pandas as pd
 
 MAX_FAILS = 10
 IMG_PIXELS = "256,256"
-OUTPUT_DIR = "./fits"
-CHANNELS = ["SDSSu", "SDSSg", "SDSSr", "SDSSi", "SDSSz"]
+OUTPUT_DIR = "./fitssmall"
+# CHANNELS = ["SDSSu", "SDSSg", "SDSSr", "SDSSi", "SDSSz"]
+
+CHANNELS = ["DSS1 Red", "DSS1 Blue"]
+
+
 
 if not os.path.exists(OUTPUT_DIR):
     os.makedirs(OUTPUT_DIR)
@@ -19,7 +23,7 @@ BASE_URL = "https://skyview.gsfc.nasa.gov/current/cgi/runquery.pl"
 failed_requests = []
 
 for i, id, ra, dec in coordinates.itertuples():
-    if i > 100:
+    if i > 10:
         break
 
     cutout_dir = os.path.join(OUTPUT_DIR, f"{id}")
