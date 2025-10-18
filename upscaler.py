@@ -1,6 +1,10 @@
 import os
+import cv2 as cv
 import numpy
 import astropy.io.fits as fits
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
 
 CUTOUT_DIR_SMALL = "fitssmall"
 CUTOUT_DIR_BIG = "fits"
@@ -76,3 +80,20 @@ low_res, high_res = build_dataset(get_galaxy_ids())
 
 print(low_res.shape)
 print(high_res.shape)
+
+cv.imshow("low res example", cv.normalize(low_res[0], None, 0, 255, cv.NORM_MINMAX, cv.CV_8U))
+cv.waitKey(0)
+
+cv.imshow("high res example", cv.normalize(high_res[0], None, 0, 255, cv.NORM_MINMAX, cv.CV_8U))
+cv.waitKey(0)
+
+cv.imshow("low to high res example", cv.normalize(cv.resize(low_res[0], (256, 256)), None, 0, 255, cv.NORM_MINMAX, cv.CV_8U))
+cv.waitKey(0)
+
+cv.imshow("high to low res example", cv.normalize(cv.resize(high_res[0], (64, 64)), None, 0, 255, cv.NORM_MINMAX, cv.CV_8U))
+cv.waitKey(0)
+
+cv.imshow("high to low to high res example", cv.normalize(cv.resize(cv.resize(high_res[0], (64, 64)), (256, 256)), None, 0, 255, cv.NORM_MINMAX, cv.CV_8U))
+cv.waitKey(0)
+
+cv.destroyAllWindows()
