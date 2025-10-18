@@ -7,8 +7,14 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report, confusion_matrix, balanced_accuracy_score
 import astropy.io.fits as fits
 
-CUTOUT_DIR = "fits"
+CUTOUT_DIR = "fitssmall"
 FAILED_LOG = "failed.txt"
+
+# CUTOUT_LABEL = "SDSS"
+# CUTOUT_BANDS = ["r", "g", "i"]
+
+CUTOUT_LABEL = "DSS1 "
+CUTOUT_BANDS = ["Red"]
 
 def get_galaxy_ids():
     if not os.path.isdir(CUTOUT_DIR):
@@ -17,23 +23,21 @@ def get_galaxy_ids():
 
 def get_fits(galaxy_id):
     galaxy_dir = os.path.join(CUTOUT_DIR, f"{galaxy_id}")
+    
+    bands = []
+    
+    for band in CUTOUT_BANDS:
+        path = os.path.join(galaxy_dir, f"{CUTOUT_LABEL}{band}_{galaxy_id}.fits")
+        
+        if not os.path.exists(path) or os.path.getsize(path) < 1028:
+            return None
 
-    g_path = os.path.join(galaxy_dir, f"SDSSg_{galaxy_id}.fits")
-    r_path = os.path.join(galaxy_dir, f"SDSSr_{galaxy_id}.fits")
-    i_path = os.path.join(galaxy_dir, f"SDSSi_{galaxy_id}.fits")
-
-    if not (os.path.exists(g_path) and os.path.exists(r_path) and os.path.exists(i_path)):
-        return None
-
-    if os.path.getsize(g_path) < 6000 or os.path.getsize(r_path) < 6000 or os.path.getsize(i_path) < 6000:
-        return None
-
-    g_fit = fits.open(g_path)[0].data
-    r_fit = fits.open(r_path)[0].data
-    i_fit = fits.open(i_path)[0].data
+        bands.append(fits.open(path)[0].data)
+        
+    
 
     try:
-        stacked = numpy.stack([g_fit, r_fit, i_fit])
+        stacked = numpy.stack(bands)
         stacked = numpy.moveaxis(stacked, 0, -1)
     except:
         return None
@@ -57,7 +61,7 @@ def build_dataset(labelDf):
     with open(FAILED_LOG, "w") as log:
         for galaxy_id in ids:
             
-            if fails > 1000:
+            if fails > 10000:
                 print("breaking due to fails")
                 break
             
