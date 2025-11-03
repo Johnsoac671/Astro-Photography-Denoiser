@@ -54,9 +54,9 @@ def format_time(seconds):
     return f"{hours:02d}:{minutes:02d}:{secs:02d}"
 
 def normalize_image(img):
-    low, high = numpy.percentile(img, [1, 99])
-    img_clipped = numpy.clip(img, low, high)
-    return (img_clipped - img_clipped.min()) / (img_clipped.max() - img_clipped.min() + 1e-8)
+    img_shifted = img - numpy.min(img) + 1e-10
+    img_log = numpy.log10(img_shifted + 1)
+    return (img_log - img_log.min()) / (img_log.max() - img_log.min() + 1e-8)
 
 
 def build_dataset():
@@ -118,9 +118,11 @@ class CnnUpscaler(nn.Module):
         self.b5 = nn.BatchNorm2d(64)
         
         self.conv6 = nn.Conv2d(64, 32, kernel_size=3, padding=1)
-        self.conv7 = nn.Conv2d(32, scale_factor**2, kernel_size=3, padding=1)
+      
         
-        self.pixel_shuffle = nn.PixelShuffle(scale_factor)
+        self.upsampler = nn.Upsample(scale_factor=scale_factor, mode="bilinear")
+        self.conv7 = nn.Conv2d(32, 16, kernel_size=3, padding=1)
+        self.conv8 = nn.Conv2d(16, 1, kernel_size=3, padding=1)
         self.relu = nn.ReLU(inplace=True)
         
     def forward(self, x):
@@ -130,8 +132,10 @@ class CnnUpscaler(nn.Module):
         x = self.relu(self.b4(self.conv4(x)))
         x = self.relu(self.b5(self.conv5(x)))
         x = self.relu(self.conv6(x))
-        x = self.conv7(x)
-        x = self.pixel_shuffle(x)
+        
+        x = self.upsampler(x)
+        x = self.relu(self.conv7(x))
+        x = self.conv8(x)
         
         return x
     
@@ -156,7 +160,7 @@ if __name__ == "__main__":
     
     
     model = CnnUpscaler().to(compute_device)
-    loss_model = nn.MSELoss()
+    loss_model = nn.L1Loss()
     optimizer_model = Adam(model.parameters(), lr=0.001)
 
     dataset = ImageDataset(*build_dataset())
@@ -165,7 +169,7 @@ if __name__ == "__main__":
     scaler = GradScaler()
     
     start = time.time()
-    iterations = 50
+    iterations = 20
     
     for iteration in range(iterations):
         model.train()
@@ -204,6 +208,6 @@ if __name__ == "__main__":
                         'model_state_dict': model.state_dict(),
                         'optimizer_state_dict': optimizer_model.state_dict(),
                         'loss': total_loss/len(dataloader), },
-                       f"checkpoint_epoch_{iteration + 1}.pth")
+                       f"checkpoint_iteration_{iteration + 1}.pth")
     
     torch.save(model.state_dict(), "upscale_model.pth")
