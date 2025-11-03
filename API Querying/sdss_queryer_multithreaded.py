@@ -6,15 +6,20 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Lock
 
 MAX_FAILS = 20
-IMAGE_COUNT = 2500
+IMAGE_COUNT = 10000
+
 IMG_PIXELS = "64,64"
 OUTPUT_DIR = "./fitssmall"
-# CHANNELS = ["SDSSg", "SDSSr", "SDSSi"]
-
 CHANNELS = ["DSS1 Red"]
 
+# IMG_PIXELS = "256,256"
+# OUTPUT_DIR = "./fits"
+# CHANNELS = ["SDSSr"]
+
+
+
 MAX_WORKERS = 6
-RATE_LIMIT_DELAY = 0.5
+RATE_LIMIT_DELAY = 0.75
 
 if not os.path.exists(OUTPUT_DIR):
     os.makedirs(OUTPUT_DIR)

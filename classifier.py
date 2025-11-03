@@ -11,7 +11,7 @@ CUTOUT_DIR = "fitssmall"
 FAILED_LOG = "failed.txt"
 
 # CUTOUT_LABEL = "SDSS"
-# CUTOUT_BANDS = ["r", "g", "i"]
+# CUTOUT_BANDS = ["r"]
 
 CUTOUT_LABEL = "DSS1 "
 CUTOUT_BANDS = ["Red"]
@@ -78,18 +78,27 @@ def build_dataset(labelDf):
             if index % 100 == 0:
                 print(f"Done with: {index}")
 
-    data = numpy.stack(fits_list)
+    try:
+        data = numpy.stack(fits_list)
+    except:
+        array_shapes = [arr.shape for arr in fits_list]
+        unique_shapes, counts = numpy.unique(array_shapes, axis=0, return_counts=True)
+        print("Array shapes and their counts in fits_list:")
+        for shape, count in zip(unique_shapes, counts):
+            print(f"Shape: {shape}, Count: {count}")
+        SystemExit()
+    
     data = data.reshape(data.shape[0], -1) # flatten data
-    labels = labels = labelDf[labelDf["objectID"].isin(valid_ids)][["morphology"]].values
+    labels = labels = labelDf[labelDf["objectID"].isin(valid_ids)][["edgeon"]].values
 
     return data, labels
 
 data, labels = build_dataset(get_labelled_data(get_galaxy_ids()))
 
 print("dataset made")
-model = RandomForestClassifier(n_estimators=100, max_depth=10, n_jobs=-1, random_state=42)
+model = RandomForestClassifier(n_estimators=100, max_depth=10, n_jobs=-1, random_state=42, class_weight="balanced")
 
-trainx, testx, trainy, testy = skmod.train_test_split(data, labels)
+trainx, testx, trainy, testy = skmod.train_test_split(data, labels.ravel())
 
 print("dataset split")
 model = model.fit(trainx, trainy)
