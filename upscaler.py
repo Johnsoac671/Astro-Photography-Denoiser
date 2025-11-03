@@ -2,14 +2,17 @@ import os
 import cv2 as cv
 import numpy
 import astropy.io.fits as fits
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.utils.data import Dataset, DataLoader
+from torch.optim import Adam
+
 
 CUTOUT_DIR_SMALL = "fitssmall"
 CUTOUT_DIR_BIG = "fits"
 FAILED_LOG = "failed_upscale.txt"
-
 
 def get_galaxy_ids():
     
@@ -29,19 +32,21 @@ def get_fits(dir, galaxy_id):
     if not os.path.exists(path) or os.path.getsize(path) < 6500:
         return None
 
-    
-        
     try:
         bands.append(fits.open(path)[0].data)
         stacked = numpy.stack(bands)
         stacked = numpy.moveaxis(stacked, 0, -1)
+        
+        stacked = numpy.moveaxis(stacked, -1, 0)
     except:
         return None
 
     return stacked
 
 
-def build_dataset(ids):
+def build_dataset():
+    ids = get_galaxy_ids()
+    
     low_res_fits = []
     high_res_fits = []
 
@@ -76,24 +81,65 @@ def build_dataset(ids):
 
     return low_res_data, high_res_data
 
-low_res, high_res = build_dataset(get_galaxy_ids())
 
-print(low_res.shape)
-print(high_res.shape)
+class CnnUpscaler(nn.Module):
+    def __init__(self, scale_factor=4):
+        super().__init__()
+        self.conv1 = nn.Conv2d(1, 64, kernel_size=5, padding=2)
+        self.conv2 = nn.Conv2d(64, 32, kernel_size=3, padding=1)
+        self.conv3 = nn.Conv2d(32, scale_factor**2, kernel_size=3, padding=1)
+        self.pixel_suffle = nn.PixelShuffle(scale_factor)
+        self.relu = nn.ReLU()
+        
+    def forward(self, x):
+        x = self.relu(self.conv1(x))
+        x = self.relu(self.conv2(x))
+        x = self.conv3(x)
+        x = self.pixel_suffle(x)
+        return x
+    
 
-cv.imshow("low res example", cv.normalize(low_res[0], None, 0, 255, cv.NORM_MINMAX, cv.CV_8U))
-cv.waitKey(0)
+class ImageDataset(Dataset):
+    def __init__(self, low_res_images, high_res_images):
+        self.low_res = low_res_images 
+        self.high_res = high_res_images 
+    
+    def __len__(self):
+        return len(self.low_res)
+    
+    def __getitem__(self, index):
+        low = self.low_res[index]
+        high = self.high_res[index]
+        return torch.from_numpy(low).float(), torch.from_numpy(high).float()
 
-cv.imshow("high res example", cv.normalize(high_res[0], None, 0, 255, cv.NORM_MINMAX, cv.CV_8U))
-cv.waitKey(0)
 
-cv.imshow("low to high res example", cv.normalize(cv.resize(low_res[0], (256, 256)), None, 0, 255, cv.NORM_MINMAX, cv.CV_8U))
-cv.waitKey(0)
+if __name__ == "__main__":
+    compute_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = CnnUpscaler().to(compute_device)
+    loss_model = nn.MSELoss()
+    optimizer_model = Adam(model.parameters())
 
-cv.imshow("high to low res example", cv.normalize(cv.resize(high_res[0], (64, 64)), None, 0, 255, cv.NORM_MINMAX, cv.CV_8U))
-cv.waitKey(0)
-
-cv.imshow("high to low to high res example", cv.normalize(cv.resize(cv.resize(high_res[0], (64, 64)), (256, 256)), None, 0, 255, cv.NORM_MINMAX, cv.CV_8U))
-cv.waitKey(0)
-
-cv.destroyAllWindows()
+    dataset = ImageDataset(*build_dataset())
+    dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
+    
+    iterations = 50
+    for iteration in range(iterations):
+        model.train()
+        total_loss = 0
+        
+        for low, high in dataloader:
+            low_res = low.to(compute_device)
+            high_res = high.to(compute_device)
+            
+            output = model(low_res)
+            loss = loss_model(output, high_res)
+            
+            optimizer_model.zero_grad()
+            loss.backward()
+            optimizer_model.step()
+            
+            total_loss += loss.item()
+        
+        print(f'Interation [{iteration + 1}/{iterations}], Loss: {total_loss/len(dataloader):.4f}')
+    
+    torch.save(model.state_dict(), "upscale_model.pth")
