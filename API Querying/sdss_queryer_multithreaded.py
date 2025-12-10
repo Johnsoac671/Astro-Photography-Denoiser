@@ -6,15 +6,15 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Lock
 
 MAX_FAILS = 20
-IMAGE_COUNT = 10000
+IMAGE_COUNT = 20000
 
-IMG_PIXELS = "64,64"
-OUTPUT_DIR = "./fitssmall"
-CHANNELS = ["DSS1 Red"]
+# IMG_PIXELS = "64,64"
+# OUTPUT_DIR = "./fitssmall"
+# CHANNELS = ["DSS1 Red"]
 
-# IMG_PIXELS = "256,256"
-# OUTPUT_DIR = "./fits"
-# CHANNELS = ["SDSSr"]
+IMG_PIXELS = "256,256"
+OUTPUT_DIR = "./fits"
+CHANNELS = ["SDSSr"]
 
 
 
